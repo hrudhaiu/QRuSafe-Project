@@ -6,7 +6,8 @@ import "./App.css";
 function App() {
   const [result, setResult] = useState(null);
   const [scanning, setScanning] = useState(false);
-  const [loading, setLoading] = useState(false); // New state to show scanning progress
+  const [loading, setLoading] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const scannerRef = useRef(null);
   const readerRef = useRef(null);
 
@@ -30,7 +31,6 @@ function App() {
         .then(() => console.log("Scanner stopped after successful scan"))
         .catch((error) => console.error("Failed to stop scanner:", error));
     }
-    
     setScanning(false);
     checkUrlSafety(decodedText);
   };
@@ -40,23 +40,22 @@ function App() {
   };
 
   const checkUrlSafety = async (url) => {
-    setLoading(true);  // Show "Scanning in progress..."
-    setResult(null);   // Clear old result
+    setLoading(true);
+    setResult(null);
+    setShowDetails(false);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/check-url", { url }, {
+      const response = await axios.post("http://localhost:5001/api/check-url", { url }, {
         headers: { "Content-Type": "application/json" }
       });
-
-      console.log("Backend Response:", response.data); 
-
+      console.log("Backend Response:", response.data);
       setResult({ ...response.data, url });
     } catch (error) {
       console.error("Error checking URL safety:", error);
       setResult({ safe: false, details: "Error occurred while checking URL." });
     }
 
-    setLoading(false);  // Hide loading message after scan is complete
+    setLoading(false);
   };
 
   return (
@@ -84,7 +83,7 @@ function App() {
 
           {result.safe ? (
             <>
-              <p>Safe Link</p>
+              <p>✅ Safe Link</p>
               <p>This link appears to be safe.</p>
               <a href={result.url} target="_blank" rel="noopener noreferrer">
                 Open Scanned Link
@@ -94,16 +93,30 @@ function App() {
             <>
               <p>⚠️ Potentially Dangerous!</p>
               <p>This link might be harmful. Proceed with caution.</p>
+              
+              {/* Summary of Overall Threat */}
+              {result.details && result.details.virustotal && result.details.virustotal.length > 0 && (
+                <div className="threat-summary">
+                  <p><strong>Overall Category:</strong> {result.details.virustotal[0].category}</p>
+                  <p><strong>Overall Reason:</strong> {result.details.virustotal[0].reason}</p>
+                  <button onClick={() => setShowDetails(!showDetails)}>
+                    {showDetails ? "Hide Details" : "View More Info"}
+                  </button>
+                </div>
+              )}
 
-              {result.details && result.details.matches && result.details.matches.length > 0 ? (
-                result.details.matches.map((match, index) => (
-                  <div key={index} className="threat-box">
-                    <p><strong>Threat Type:</strong> {match.threatType.replace(/_/g, " ")}</p>
-                    <p><strong>URL:</strong> {match.threat.url}</p>
-                  </div>
-                ))
-              ) : (
-                <p>No additional threat details available.</p>
+              {/* Full Threat Details */}
+              {showDetails && result.details && (
+                <div className="threat-box">
+                  <h3>VirusTotal Threats:</h3>
+                  {result.details.virustotal.map((match, index) => (
+                    <div key={index}>
+                      <p><strong>Detected by:</strong> {match.engine}</p>
+                      <p><strong>Category:</strong> {match.category}</p>
+                      <p><strong>Reason:</strong> {match.reason}</p>
+                    </div>
+                  ))}
+                </div>
               )}
             </>
           )}

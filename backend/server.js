@@ -5,7 +5,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 234;
+const PORT = 5001;
 
 app.use(cors());
 app.use(express.json());
@@ -36,7 +36,7 @@ const checkVirusTotal = async (url) => {
   const analysisId = submitData.data.id;
 
   // Step 2: Wait and Fetch Analysis Results
-  await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+  await new Promise(resolve => setTimeout(resolve, 5001)); // Wait 5 seconds
 
   const resultResponse = await fetch(`https://www.virustotal.com/api/v3/analyses/${analysisId}`, {
       method: "GET",
@@ -88,24 +88,45 @@ app.post('/api/check-url', async (req, res) => {
 
     // Check if the URL is flagged as malicious
     //check if either are flagged   
+    // Check if the URL is flagged as malicious
     const isGoogleMalicious = googleResponse.data && googleResponse.data.matches;
     const isVirusTotalMalicious = virusTotalResponse?.data?.attributes?.stats?.malicious > 0;
-    
 
-    if (isGoogleMalicious || isVirusTotalMalicious) {
+    let googleThreats = [];
+    if (isGoogleMalicious) {
+      googleThreats = googleResponse.data.matches.map(match => ({
+        threatType: match.threatType.replace(/_/g, " "),
+        url: match.threat.url,
+        platform: match.platformType.replace(/_/g, " ")
+      }));
+    }
+
+    let virusTotalThreats = [];
+    if (isVirusTotalMalicious) {
+      virusTotalThreats = Object.entries(virusTotalResponse.data.attributes.results)
+        .filter(([_, value]) => value.category === "malicious")
+        .map(([source, value]) => ({
+          engine: source,
+          category: value.category,
+          reason: value.result
+        }));
+    }
+
+    if (googleThreats.length > 0 || virusTotalThreats.length > 0) {
       console.log("URL is flagged as malicious.");
       return res.json({
         safe: false,
         message: "This link is flagged as potentially dangerous.",
         details: {
-          google: googleResponse.data || "No data from Google Safe Browsing",
-          virustotal: virusTotalResponse || "No data from VirusTotal"
+          google: googleThreats.length > 0 ? googleThreats : "No threats found on Google Safe Browsing",
+          virustotal: virusTotalThreats.length > 0 ? virusTotalThreats : "No threats found on VirusTotal"
         }
       });
     } else {
       console.log("URL is safe.");
       return res.json({ safe: true, message: "This link appears safe." });
     }
+
 
   } catch (error) {
     console.error("Error checking URL:", error.response ? error.response.data : error.message);
