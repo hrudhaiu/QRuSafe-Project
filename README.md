@@ -1,6 +1,5 @@
 # QRuSafe-Project
 
-Summary of What to Install
 To run this project locally or deploy it elsewhere, ensure the following dependencies are installed.
 
 1. Install Backend Dependencies
@@ -16,7 +15,7 @@ npm install html5-qrcode axios
 Create .env in the backend folder:
 GOOGLE_API_KEY=your_google_api_key
 VIRUS_TOTAL_API_KEY=your_virustotal_api_key
-PORT=5000
+PORT=5000 // this can be changed
 
 
 
