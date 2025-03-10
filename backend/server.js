@@ -2,6 +2,8 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const cheerio = require("cheerio");
+
 require('dotenv').config();
 
 const app = express();
@@ -36,7 +38,7 @@ const checkVirusTotal = async (url) => {
   const analysisId = submitData.data.id;
 
   // Step 2: Wait and Fetch Analysis Results
-  await new Promise(resolve => setTimeout(resolve, 5001)); // Wait 5 seconds
+  await new Promise(resolve => setTimeout(resolve, 20)); 
 
   const resultResponse = await fetch(`https://www.virustotal.com/api/v3/analyses/${analysisId}`, {
       method: "GET",
@@ -131,6 +133,24 @@ app.post('/api/check-url', async (req, res) => {
   } catch (error) {
     console.error("Error checking URL:", error.response ? error.response.data : error.message);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post("/api/fetch-metadata", async (req, res) => {
+  const { url } = req.body;
+
+  try {
+      const { data } = await axios.get(url, { timeout: 5000 });
+      const $ = cheerio.load(data);
+
+      const title = $("meta[property='og:title']").attr("content") || $("title").text();
+      const description = $("meta[property='og:description']").attr("content") || $("meta[name='description']").attr("content");
+      const image = $("meta[property='og:image']").attr("content") || $("link[rel='icon']").attr("href");
+
+      res.json({ title, description, image });
+  } catch (error) {
+      console.error("Error fetching metadata:", error);
+      res.status(500).json({ message: "Failed to fetch metadata." });
   }
 });
 

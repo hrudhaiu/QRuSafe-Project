@@ -7,7 +7,7 @@ function App() {
   const [result, setResult] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const [metadata, setMetadata] = useState(null);
   const scannerRef = useRef(null);
   const readerRef = useRef(null);
 
@@ -33,6 +33,7 @@ function App() {
     }
     setScanning(false);
     checkUrlSafety(decodedText);
+    fetchUrlMetadata(decodedText);
   };
 
   const onScanFailure = (error) => {
@@ -42,7 +43,6 @@ function App() {
   const checkUrlSafety = async (url) => {
     setLoading(true);
     setResult(null);
-    setShowDetails(false);
 
     try {
       const response = await axios.post("http://localhost:5001/api/check-url", { url }, {
@@ -56,6 +56,17 @@ function App() {
     }
 
     setLoading(false);
+  };
+
+  const fetchUrlMetadata = async (url) => {
+    try {
+      const response = await axios.post("http://localhost:5001/api/fetch-metadata", { url });
+      console.log("Metadata Response:", response.data);
+      setMetadata(response.data);
+    } catch (error) {
+      console.error("Error fetching metadata:", error);
+      setMetadata(null);
+    }
   };
 
   return (
@@ -85,41 +96,33 @@ function App() {
             <>
               <p>✅ Safe Link</p>
               <p>This link appears to be safe.</p>
-              <a href={result.url} target="_blank" rel="noopener noreferrer">
-                Open Scanned Link
-              </a>
             </>
           ) : (
             <>
               <p>⚠️ Potentially Dangerous!</p>
               <p>This link might be harmful. Proceed with caution.</p>
-              
-              {/* Summary of Overall Threat */}
-              {result.details && result.details.virustotal && result.details.virustotal.length > 0 && (
-                <div className="threat-summary">
-                  <p><strong>Overall Category:</strong> {result.details.virustotal[0].category}</p>
-                  <p><strong>Overall Reason:</strong> {result.details.virustotal[0].reason}</p>
-                  <button onClick={() => setShowDetails(!showDetails)}>
-                    {showDetails ? "Hide Details" : "View More Info"}
-                  </button>
-                </div>
-              )}
-
-              {/* Full Threat Details */}
-              {showDetails && result.details && (
-                <div className="threat-box">
-                  <h3>VirusTotal Threats:</h3>
-                  {result.details.virustotal.map((match, index) => (
-                    <div key={index}>
-                      <p><strong>Detected by:</strong> {match.engine}</p>
-                      <p><strong>Category:</strong> {match.category}</p>
-                      <p><strong>Reason:</strong> {match.reason}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
             </>
           )}
+
+          {/* URL Preview Metadata */}
+          {metadata && (
+            <div className="url-preview">
+              <h3>Website Preview:</h3>
+              {metadata.image && <img src={metadata.image} alt="Website preview" className="preview-image" />}
+              <p><strong>Title:</strong> {metadata.title}</p>
+              <p><strong>Description:</strong> {metadata.description}</p>
+
+              {/* Only show "Open Scanned Link" if the link is safe */}
+              {result.safe && (
+                <a href={result.url} target="_blank" rel="noopener noreferrer">
+                  Open Scanned Link
+                </a>
+              )}
+            </div>
+          )}
+
+
+          
         </div>
       )}
     </div>
