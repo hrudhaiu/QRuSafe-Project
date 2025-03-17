@@ -38,7 +38,7 @@ const checkVirusTotal = async (url) => {
   const analysisId = submitData.data.id;
 
   // Step 2: Wait and Fetch Analysis Results
-  await new Promise(resolve => setTimeout(resolve, 20)); 
+  await new Promise(resolve => setTimeout(resolve, 5000)); 
 
   const resultResponse = await fetch(`https://www.virustotal.com/api/v3/analyses/${analysisId}`, {
       method: "GET",

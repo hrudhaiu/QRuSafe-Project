@@ -89,7 +89,7 @@ function App() {
       )}
 
       {!loading && result && (
-        <div className={`result ${result.safe === true ? "safe" : "danger"}`}>
+        <div className={`result ${result.safe ? "safe" : "danger"}`}>
           <h2>Scan Result:</h2>
 
           {result.safe ? (
@@ -102,6 +102,45 @@ function App() {
               <p>⚠️ Potentially Dangerous!</p>
               <p>This link might be harmful. Proceed with caution.</p>
             </>
+          )}
+
+          {/* Display detailed threat information */}
+          {!result.safe && (
+            <div className="threat-details">
+              <h3>Threat Details:</h3>
+
+              {/* Google Safe Browsing Threats */}
+              {Array.isArray(result.details.google) ? (
+                <div>
+                  <h4>🔍 Google Safe Browsing:</h4>
+                  <ul>
+                    {result.details.google.map((threat, index) => (
+                      <li key={index}>
+                        <strong>{threat.threatType}</strong> detected on <em>{threat.url}</em> (Platform: {threat.platform})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p>✅ No threats found on Google Safe Browsing</p>
+              )}
+
+              {/* VirusTotal Threats */}
+              {Array.isArray(result.details.virustotal) ? (
+                <div>
+                  <h4>🦠 VirusTotal Analysis:</h4>
+                  <ul>
+                    {result.details.virustotal.map((threat, index) => (
+                      <li key={index}>
+                        <strong>{threat.engine}</strong>: {threat.result} ({threat.category})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p>✅ No threats found on VirusTotal</p>
+              )}
+            </div>
           )}
 
           {/* URL Preview Metadata */}
@@ -120,9 +159,6 @@ function App() {
               )}
             </div>
           )}
-
-
-          
         </div>
       )}
     </div>
